@@ -85,6 +85,24 @@ if_label:
     MOVFF btemp0, t
     endm
 
+    shift_left16 macro tl, th, xl, xh, y
+    MOVFF y, btemp2
+    MOVFF xh, btemp1
+    MOVFF xl, btemp0
+    CALL shift_left16_impl
+    MOVFF btemp0, tl
+    MOVFF btemp1, th
+    endm
+
+    shift_right16 macro tl, th, xl, xh, y
+    MOVFF y, btemp2
+    MOVFF xh, btemp1
+    MOVFF xl, btemp0
+    CALL shift_right16_impl
+    MOVFF btemp0, tl
+    MOVFF btemp1, th
+    endm
+
     clz8 macro t, x
     MOVFF x, btemp0
     CALL clz8_impl
@@ -219,17 +237,13 @@ if_label:
     endm
 
 main:
-    MOVLW 0x0F
+    MOVLW 0xFF
     MOVWF 0x000
-    MOVLW 0x00
+    MOVLW 0xFF
     MOVWF 0x001
-    if_lower 0x000, 0x001, if_label_1, else_label_1
     MOVLW 0x01
     MOVWF 0x002
-    else_ else_label_1, end_if_label_1
-    MOVLW 0xFF
-    MOVWF 0x002
-    end_if end_if_label_1
+    shift_right16 0x003, 0x004, 0x000, 0x001, 0x002
 
     GOTO meow
 
@@ -406,6 +420,38 @@ sqrt8_end:
     RETURN
 sqrt8_x_lower_1:
     MOVFF btemp3, btemp4
+    RETURN
+
+shift_right16_impl:
+    CLRF btemp3
+    MOVLW 0x00
+    CPFSGT btemp2
+    GOTO shift_right16_end
+shift_right16_loop:
+    BCF STATUS, 0
+    rrcf16 btemp0, btemp1
+    MOVFF STATUS, WREG
+    IORWF btemp3, 1
+    DECFSZ btemp2
+    GOTO shift_right16_loop
+shift_right16_end:
+    MOVFF btemp3, STATUS
+    RETURN
+
+shift_left16_impl:
+    CLRF btemp3
+    MOVLW 0x00
+    CPFSGT btemp2
+    GOTO shift_left16_end
+shift_left16_loop:
+    BCF STATUS, 0
+    rlcf16 btemp0, btemp1
+    MOVFF STATUS, WREG
+    IORWF btemp3, 1
+    DECFSZ btemp2
+    GOTO shift_left16_loop
+shift_left16_end:
+    MOVFF btemp3, STATUS
     RETURN
 
 meow:
