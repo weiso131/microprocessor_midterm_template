@@ -4,6 +4,58 @@ List p=18f4520
     CONFIG WDT = OFF
     org 0x00
 
+    for macro i, num, for_loop_label, for_end_label
+for_loop_label:
+    MOVFF num, WREG
+    CPFSLT i
+    GOTO for_end_label
+
+    endm
+
+    for_end macro i, for_loop_label, for_end_label
+    INCF i
+    GOTO for_loop_label
+for_end_label:
+    endm
+
+    
+    if_equ macro a, b, if_label, else_label
+    MOVFF a, WREG
+    CPFSEQ b
+    GOTO else_label
+    GOTO if_label
+if_label:
+
+    endm
+
+    else_ macro else_label, end_if_label
+    GOTO end_if_label
+else_label:
+
+
+    endm
+
+    end_if macro end_if_label
+end_if_label:
+    endm
+
+    if_bigger macro a, b, if_label, else_label
+    MOVFF b, WREG
+    CPFSGT a
+    GOTO else_label
+    GOTO if_label
+if_label:
+
+    endm
+
+    if_lower macro a, b, if_label, else_label
+    MOVFF b, WREG
+    CPFSLT a
+    GOTO else_label
+    GOTO if_label
+if_label:
+
+    endm
 
     mod8 macro t, a, b
     MOVFF a, btemp3
@@ -140,8 +192,16 @@ List p=18f4520
 main:
     MOVLW 0x0F
     MOVWF 0x000
+    MOVLW 0x00
+    MOVWF 0x001
+    if_lower 0x000, 0x001, if_label_1, else_label_1
+    MOVLW 0x01
+    MOVWF 0x002
+    else_ else_label_1, end_if_label_1
+    MOVLW 0xFF
+    MOVWF 0x002
+    end_if end_if_label_1
 
-    sqrt8 0x001, 0x000
     GOTO meow
 
     btemp0 EQU 0xF0
