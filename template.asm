@@ -39,6 +39,13 @@ List p=18f4520
     MOVFF btemp1, t
     endm
 
+    sqrt8 macro t, x
+    MOVFF x, btemp3
+    CALL sqrt8_impl
+    MOVFF btemp4, t
+    endm
+
+
     rlcf16 macro xl, xh
     RLCF xl, 1
     RLCF xh, 1
@@ -131,10 +138,10 @@ List p=18f4520
     endm
 
 main:
-    MOVLW 0x00
+    MOVLW 0x0F
     MOVWF 0x000
 
-    clz8 0x001, 0x000
+    sqrt8 0x001, 0x000
     GOTO meow
 
     btemp0 EQU 0xF0
@@ -253,6 +260,63 @@ clz8_Continue2:
     ADDWF btemp1 ; r += c
     RLCF btemp0  ;x << c
 clz8_Continue3:
+    RETURN
+
+; https://hackmd.io/@sysprog/linux2025-quiz2#%E6%B8%AC%E9%A9%97-2
+; why it work: https://hackmd.io/@sysprog/linux2025-quiz2#%E6%B8%AC%E9%A9%97-2
+sqrt8_impl:
+    CLRF btemp4 ; y
+    ; if (x <= 1)
+    MOVLW 0x01
+    CPFSGT btemp3
+    GOTO sqrt8_x_lower_1
+
+    ; shift = (total_bits - 1 - clz8(x)) & ~1;
+    clz8 btemp0, btemp3
+    MOVLW 0x07
+    SUBWF btemp0, 1
+    NEGF btemp0, 1
+    MOVLW 0xFE
+    ANDWF btemp0, 1
+
+
+    MOVLW 0x01
+    shift_left8 btemp5, WREG, btemp0 ;m
+
+    
+sqrt8_loop:
+    ; while (m)
+    CLRF WREG
+    CPFSGT btemp5
+    GOTO sqrt8_end
+
+    ; b = y + m
+    MOVFF btemp4, WREG
+    ADDWF btemp5, 0
+    ; y >>= 1
+    BCF STATUS, 0
+    RRCF btemp4, 1
+
+    ; if (x >= b)
+    CPFSLT btemp3
+    GOTO sqrt8_process
+    GOTO sqrt8_continue
+sqrt8_process:
+    SUBWF btemp3, 1
+    MOVFF btemp5, WREG
+    ADDWF btemp4, 1
+sqrt8_continue:
+    ; m >>= 2
+    BCF STATUS, 0
+    RRCF btemp5, 1
+    BCF STATUS, 0
+    RRCF btemp5, 1
+    GOTO sqrt8_loop
+
+sqrt8_end:
+    RETURN
+sqrt8_x_lower_1:
+    MOVFF btemp3, btemp4
     RETURN
 
 meow:
