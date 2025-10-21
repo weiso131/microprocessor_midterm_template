@@ -3,7 +3,8 @@ List p=18f4520
     CONFIG OSC = INTIO67
     CONFIG WDT = OFF
     org 0x00
-    
+
+
     mod8 macro t, a, b
     MOVFF a, btemp3
     MOVFF b, btemp4
@@ -30,6 +31,26 @@ List p=18f4520
     MOVFF x, btemp0
     CALL shift_right8_impl
     MOVFF btemp0, t
+    endm
+
+    rlcf16 macro xl, xh
+    RLCF xl, 1
+    RLCF xh, 1
+    endm
+
+    rrcf16 macro xl, xh
+    RRCF xh, 1
+    RRCF xl, 1
+    endm
+
+    rlcf32 macro x0, x1, x2, x3
+    rlcf16 x0, x1
+    rlcf16 x2, x3
+    endm
+
+    rrcf32 macro x0, x1, x2, x3
+    rrcf16 x2, x3
+    rrcf16 x0, x1
     endm
 
     add16 macro tl, th, al, ah, bl, bh
@@ -104,13 +125,22 @@ List p=18f4520
     endm
 
 main:
-    MOVLW 0xFE
+    MOVLW 0x01
     MOVWF 0x000
 
-    MOVLW 0x08
+    MOVLW 0x01
     MOVWF 0x001
-    shift_right8 0x002, 0x000, 0x001
 
+    MOVLW 0x01
+    MOVWF 0x002
+
+    MOVLW 0x01
+    MOVWF 0x003
+
+    rrcf16 0x000, 0x001
+    rlcf16 0x000, 0x001
+    rlcf32 0x000, 0x001, 0x002, 0x003
+    rrcf32 0x000, 0x001, 0x002, 0x003
     GOTO meow
 
     btemp0 EQU 0xF0
