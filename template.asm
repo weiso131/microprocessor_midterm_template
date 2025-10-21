@@ -33,6 +33,12 @@ List p=18f4520
     MOVFF btemp0, t
     endm
 
+    clz8 macro t, x
+    MOVFF x, btemp0
+    CALL clz8_impl
+    MOVFF btemp1, t
+    endm
+
     rlcf16 macro xl, xh
     RLCF xl, 1
     RLCF xh, 1
@@ -125,22 +131,10 @@ List p=18f4520
     endm
 
 main:
-    MOVLW 0x01
+    MOVLW 0x00
     MOVWF 0x000
 
-    MOVLW 0x01
-    MOVWF 0x001
-
-    MOVLW 0x01
-    MOVWF 0x002
-
-    MOVLW 0x01
-    MOVWF 0x003
-
-    rrcf16 0x000, 0x001
-    rlcf16 0x000, 0x001
-    rlcf32 0x000, 0x001, 0x002, 0x003
-    rrcf32 0x000, 0x001, 0x002, 0x003
+    clz8 0x001, 0x000
     GOTO meow
 
     btemp0 EQU 0xF0
@@ -222,7 +216,44 @@ div8_loop_tail:
 div8_loop_end:
     RETURN
     
+clz8_impl:
+    MOVLW 0x08 ;if x == 0
+    MOVWF btemp1
 
+    CLRF WREG
+    CPFSEQ btemp0
+    GOTO clz8_START
+    GOTO clz8_Continue3
+
+clz8_START:
+    CLRF btemp1
+
+    MOVLW 0x10
+    CPFSLT btemp0 ;c = (x < 0x10) << 2
+    GOTO clz8_Continue1
+    MOVLW 0x04
+    ADDWF btemp1 ; r += c
+    RLCF btemp0  ; x << c
+    RLCF btemp0
+    RLCF btemp0
+    RLCF btemp0
+clz8_Continue1:
+    MOVLW 0x40
+    CPFSLT btemp0 ;c = (x < 0x10) << 1
+    GOTO clz8_Continue2
+    MOVLW 0x02
+    ADDWF btemp1 ; r += c
+    RLCF btemp0  ; x << c
+    RLCF btemp0
+clz8_Continue2:
+    MOVLW 0x80
+    CPFSLT btemp0 ;c = (x < 0x10) << 1
+    GOTO clz8_Continue3
+    MOVLW 0x01
+    ADDWF btemp1 ; r += c
+    RLCF btemp0  ;x << c
+clz8_Continue3:
+    RETURN
 
 meow:
     end
