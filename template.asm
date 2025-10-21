@@ -4,6 +4,33 @@ List p=18f4520
     CONFIG WDT = OFF
     org 0x00
     
+    mod8 macro t, a, b
+    MOVFF a, btemp3
+    MOVFF b, btemp4
+    CALL div8_impl
+    MOVFF btemp3, t
+    endm
+
+    div8 macro t, a, b
+    MOVFF a, btemp3
+    MOVFF b, btemp4
+    CALL div8_impl
+    MOVFF btemp8, t
+    endm
+
+    shift_left8 macro t, x, y
+    MOVFF y, btemp1
+    MOVFF x, btemp0
+    CALL shift_left8_impl
+    MOVFF btemp0, t
+    endm
+
+    shift_right8 macro t, x, y
+    MOVFF y, btemp1
+    MOVFF x, btemp0
+    CALL shift_right8_impl
+    MOVFF btemp0, t
+    endm
 
     add16 macro tl, th, al, ah, bl, bh
     MOVFF al, WREG
@@ -77,15 +104,12 @@ List p=18f4520
     endm
 
 main:
-    MOVLW 0xFF
+    MOVLW 0xFE
     MOVWF 0x000
 
-    MOVLW 0xFF
+    MOVLW 0x08
     MOVWF 0x001
-
-    int16_to_int32 0x000, 0x001, 0x000, 0x001, 0x002, 0x003
-
-    negf32 0x000, 0x001, 0x002, 0x003
+    shift_right8 0x002, 0x000, 0x001
 
     GOTO meow
 
@@ -106,7 +130,67 @@ main:
     btemp14 EQU 0xFE
     btemp15 EQU 0xFF
 
+shift_right8_impl:
+    CLRF btemp2
+    MOVLW 0x00
+    CPFSGT btemp1
+    GOTO shift_right8_end
+shift_right8_loop:
+    BCF STATUS, 0
+    RRCF btemp0
+    MOVFF STATUS, WREG
+    IORWF btemp2, 1
+    DECFSZ btemp1
+    GOTO shift_right8_loop
+shift_right8_end:
+    MOVFF btemp2, STATUS
+    RETURN
 
+shift_left8_impl:
+    CLRF btemp2
+    MOVLW 0x00
+    CPFSGT btemp1
+    GOTO shift_left8_end
+shift_left8_loop:
+    BCF STATUS, 0
+    RLCF btemp0
+    MOVFF STATUS, WREG
+    IORWF btemp2, 1
+    DECFSZ btemp1
+    GOTO shift_left8_loop
+shift_left8_end:
+    MOVFF btemp2, STATUS
+    RETURN
+
+div8_impl:
+    MOVLW 0x07
+    MOVWF btemp6
+    MOVLW 0x80
+    MOVWF btemp7
+    CLRF btemp8
+div8_loop:
+    shift_left8 btemp5, btemp4, btemp6
+    ; if carry != 0
+    BTFSC STATUS, 0
+    GOTO div8_loop_tail
+    MOVFF btemp5, WREG
+    CPFSLT btemp3
+    GOTO div8_sub
+    GOTO div8_loop_tail
+div8_sub:
+    SUBWF btemp3, 1
+    MOVFF btemp7, WREG
+    ADDWF btemp8, 1
+div8_loop_tail:
+    MOVLW 0x00
+    CPFSGT btemp6
+    GOTO div8_loop_end
+    BCF STATUS, 0
+    RRCF btemp7, 1
+    DECF btemp6
+    GOTO div8_loop
+div8_loop_end:
+    RETURN
     
 
 
