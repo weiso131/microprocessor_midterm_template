@@ -89,7 +89,6 @@ List p=18f4520
     MULWF bl
     MOVFF PRODL, tl
     MOVFF PRODH, tml
-
     MOVF al, W
     MULWF bh
     MOVF PRODL, W 
@@ -98,7 +97,6 @@ List p=18f4520
     ADDWFC tmh, F
     MOVLW 0x00
     ADDWFC th
-    
     MOVF bl, W
     MULWF ah
     MOVF PRODL, W 
@@ -107,7 +105,6 @@ List p=18f4520
     ADDWFC tmh, F
     MOVLW 0x00
     ADDWFC th
-    
     MOVF ah, W
     MULWF bh
     MOVF PRODL, W
