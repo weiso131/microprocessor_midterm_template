@@ -84,6 +84,38 @@ List p=18f4520
     MOVWF tl
     endm
 
+    mul16 macro tl, tml, tmh, th, al, ah, bl, bh
+    MOVF al, W
+    MULWF bl
+    MOVFF PRODL, tl
+    MOVFF PRODH, tml
+
+    MOVF al, W
+    MULWF bh
+    MOVF PRODL, W 
+    ADDWF tml, F
+    MOVF PRODH, W
+    ADDWFC tmh, F
+    MOVLW 0x00
+    ADDWFC th
+    
+    MOVF bl, W
+    MULWF ah
+    MOVF PRODL, W 
+    ADDWF tml, F
+    MOVF PRODH, W
+    ADDWFC tmh, F
+    MOVLW 0x00
+    ADDWFC th
+    
+    MOVF ah, W
+    MULWF bh
+    MOVF PRODL, W
+    ADDWF tmh, F
+    MOVF PRODH, W
+    ADDWFC th, F
+    endm
+
     negf16 macro xl, xh
     NEGF xl, 1
     COMF xh, 1
