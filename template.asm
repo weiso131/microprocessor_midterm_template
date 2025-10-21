@@ -54,6 +54,47 @@ if_label:
     GOTO else_label
     GOTO if_label
 if_label:
+    endm
+
+    if_equ16 macro al, ah, bl, bh, if_label, else_label
+    MOVFF bh, WREG
+    CPFSEQ ah
+    GOTO else_label
+    MOVFF bl, WREG
+    CPFSEQ al
+    GOTO else_label
+if_label:
+
+    endm
+
+    if_lower16 macro al, ah, bl, bh, if_label, else_label, middle_label
+    MOVFF bh, WREG
+    CPFSEQ ah
+    GOTO middle_label
+    MOVFF bl, WREG
+    CPFSLT al
+    GOTO else_label
+    GOTO if_label
+middle_label:
+    CPFSLT ah
+    GOTO else_label
+    GOTO if_label
+if_label:
+
+    endm
+
+    if_bigger16 macro al, ah, bl, bh, if_label, else_label, middle_label
+    MOVFF bh, WREG
+    CPFSEQ ah
+    GOTO middle_label
+    MOVFF bl, WREG
+    CPFSGT al
+    GOTO else_label
+    GOTO if_label
+middle_label:
+    CPFSGT ah
+    GOTO else_label
+if_label:
 
     endm
 
@@ -101,6 +142,28 @@ if_label:
     CALL shift_right16_impl
     MOVFF btemp0, tl
     MOVFF btemp1, th
+    endm
+
+    div16 macro tl, th, al, ah, bl, bh
+    MOVFF al, btemp4
+    MOVFF ah, btemp5
+    MOVFF bl, btemp6
+    MOVFF bh, btemp7
+    CALL div16_impl
+    MOVFF btemp11, tl
+    MOVFF btemp12, th
+
+    endm
+    
+    mod16 macro tl, th, al, ah, bl, bh
+    MOVFF al, btemp4
+    MOVFF ah, btemp5
+    MOVFF bl, btemp6
+    MOVFF bh, btemp7
+    CALL div16_impl
+    MOVFF btemp4, tl
+    MOVFF btemp5, th
+
     endm
 
     clz8 macro t, x
@@ -239,12 +302,29 @@ if_label:
 main:
     MOVLW 0xFF
     MOVWF 0x000
-    MOVLW 0xFF
+    MOVLW 0x00
     MOVWF 0x001
-    MOVLW 0x01
+    MOVLW 0xFF
     MOVWF 0x002
-    shift_right16 0x003, 0x004, 0x000, 0x001, 0x002
+    MOVLW 0xFF
+    MOVWF 0x003
 
+    mod16 4, 5, 0, 1, 2, 3
+    
+    
+    MOVLW 0xFE
+    MOVWF 0x006
+    MOVLW 0x00
+    MOVWF 0x007
+    
+    if_equ16 4, 5, 6, 7, if_label_1, else_label_1
+    MOVLW 0x01
+    MOVWF 0x008
+    else_ else_label_1, end_if_label_1
+    MOVLW 0xFF
+    MOVWF 0x008
+    end_if end_if_label_1
+    
     GOTO meow
 
     btemp0 EQU 0xF0
@@ -452,6 +532,47 @@ shift_left16_loop:
     GOTO shift_left16_loop
 shift_left16_end:
     MOVFF btemp3, STATUS
+    RETURN
+
+div16_impl:
+    ; (btemp5 btemp4) / (btemp7 btemp6)
+
+    ; shift cnt
+    MOVLW 0x0F
+    MOVWF btemp8
+
+    ; result adder
+    MOVLW 0x80
+    MOVWF btemp10
+    CLRF btemp9
+
+    ; result
+    CLRF btemp11
+    CLRF btemp12
+
+    ; tmp
+    ; btemp13
+    ; btemp14
+div16_loop:
+    shift_left16 btemp13, btemp14, btemp6, btemp7, btemp8
+    ; if carry != 0
+    BTFSC STATUS, 0
+    GOTO div16_loop_tail
+
+    if_bigger16 btemp13, btemp14, btemp4, btemp5, if_label_div16_1, else_label_div16_1, middle_label_div16_1
+    else_ else_label_div16_1, end_if_label_div16_1
+    sub16 btemp4, btemp5, btemp4, btemp5, btemp13, btemp14
+    add16 btemp11, btemp12, btemp11, btemp12, btemp9, btemp10
+    end_if end_if_label_div16_1
+div16_loop_tail:
+    MOVLW 0x00
+    CPFSGT btemp8
+    GOTO div16_loop_end
+    BCF STATUS, 0
+    rrcf16 btemp9, btemp10
+    DECF btemp8
+    GOTO div16_loop
+div16_loop_end:
     RETURN
 
 meow:
