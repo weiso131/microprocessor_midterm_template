@@ -6,7 +6,8 @@
 ~~請別在意某些變數命名很抽象~~
 
 ## 使用說明
-⚠️ 如果使用這個模板，盡量不要使用 btemp0 ~ btemp15 對應的 file register (預設是 0xF0 ~ 0xFF) ，這邊會拿去給模板的函式使用
+- ⚠️ 如果使用這個模板，盡量不要使用 btemp0 ~ btemp15 對應的 file register (預設是 0xF0 ~ 0xFF) ，這邊會拿去給模板的函式使用
+- 主要程式碼寫在 `main` 跟 `GOTO meow` 之間， macro 放在 `main` 前面 ，函式實作放在 `GOTO meow` 後面
 ### div8
 ```
 div8 t, a, b
