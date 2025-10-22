@@ -95,6 +95,17 @@ end_if end_if_label
 ```
 - 提供 `if_equ`, `if_bigger`, `if_lower`
 
+### if16
+```
+if_equ16 al, ah, bl, bh, if_label, else_label
+;...
+else_ else_label, end_if_label
+;...
+end_if end_if_label
+```
+- 提供 `if_equ16`, `if_equ_zero_16`, `if_bigger16`, `if_lower16`
+- 這專門拿來比較 `uint16`
+
 ### clz8
 ```
 clz8 t, x
@@ -107,3 +118,39 @@ sqrt8 t, x
 
 ### rlcf16, rrcf16, rlcf32, rrcf32
 - 跟指令集上面的功能應該一樣，只是提供多 bits
+
+### shift_left16
+```
+shift_left16 tl, th, xl, xh, y
+```
+- `t = x << y`
+- 如果過程發生過溢位， C 會被設成 1
+
+### shift_right16
+```
+shift_right16 tl, th, xl, xh, y
+```
+- `t = x >> y`
+- 如果過程發生過溢位， C 會被設成 1
+
+### div16
+```
+div16 tl, th, al, ah, bl, bh
+```
+- t = a / b
+
+### mod16
+```
+mod16 tl, th, al, ah, bl, bh
+```
+- t = a % b
+
+### clz16
+```
+clz16 t, xl, xh
+```
+
+### sqrt16
+```
+sqrt16 t, xl, xh
+```
