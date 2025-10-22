@@ -225,12 +225,12 @@ if_label:
     endm
 
     sub16 macro tl, th, al, ah, bl, bh
-    MOVFF bh, WREG
-    SUBWF ah, 0
-    MOVWF th
     MOVFF bl, WREG
-    SUBWFB al, 0
+    SUBWF al, 0
     MOVWF tl
+    MOVFF bh, WREG
+    SUBWFB ah, 0
+    MOVWF th
     endm
 
     mul16 macro tl, tml, tmh, th, al, ah, bl, bh
