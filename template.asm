@@ -67,6 +67,16 @@ if_label:
 
     endm
 
+    if_equ_zero_16 macro al, ah, if_label, else_label
+    CLRF WREG
+    CPFSEQ ah
+    GOTO else_label
+    CPFSEQ al
+    GOTO else_label
+if_label:
+
+    endm
+
     if_lower16 macro al, ah, bl, bh, if_label, else_label, middle_label
     MOVFF bh, WREG
     CPFSEQ ah
@@ -178,6 +188,12 @@ if_label:
     MOVFF btemp4, t
     endm
 
+    clz16 macro t, xl, xh
+    MOVFF xl, btemp0
+    MOVFF xh, btemp1
+    CALL clz16_impl
+    MOVFF btemp2, t
+    endm
 
     rlcf16 macro xl, xh
     RLCF xl, 1
@@ -300,30 +316,12 @@ if_label:
     endm
 
 main:
-    MOVLW 0xFF
+    MOVLW 0x01
     MOVWF 0x000
     MOVLW 0x00
     MOVWF 0x001
-    MOVLW 0xFF
-    MOVWF 0x002
-    MOVLW 0xFF
-    MOVWF 0x003
 
-    mod16 4, 5, 0, 1, 2, 3
-    
-    
-    MOVLW 0xFE
-    MOVWF 0x006
-    MOVLW 0x00
-    MOVWF 0x007
-    
-    if_equ16 4, 5, 6, 7, if_label_1, else_label_1
-    MOVLW 0x01
-    MOVWF 0x008
-    else_ else_label_1, end_if_label_1
-    MOVLW 0xFF
-    MOVWF 0x008
-    end_if end_if_label_1
+    clz16 0x002, 0x000, 0x001
     
     GOTO meow
 
@@ -573,6 +571,58 @@ div16_loop_tail:
     DECF btemp8
     GOTO div16_loop
 div16_loop_end:
+    RETURN
+
+clz16_impl:
+    MOVLW 0x10 ;if x == 0
+    MOVWF btemp2
+
+    if_equ_zero_16 btemp0, btemp1, if_label_clz16_1, else_label_clz16_1
+    GOTO clz16_Continue4
+    else_ else_label_clz16_1, end_if_label_clz16_1
+    end_if end_if_label_clz16_1
+
+clz16_START:
+    CLRF btemp2
+    MOVLW 0x01
+    CPFSLT btemp1 ;c = (x < 0x0100) << 3
+    GOTO clz16_Continue1
+    MOVLW 0x08
+    ADDWF btemp2 ; r += c
+    rlcf16 btemp0, btemp1 ; x << c
+    rlcf16 btemp0, btemp1
+    rlcf16 btemp0, btemp1
+    rlcf16 btemp0, btemp1
+    rlcf16 btemp0, btemp1
+    rlcf16 btemp0, btemp1
+    rlcf16 btemp0, btemp1
+    rlcf16 btemp0, btemp1
+clz16_Continue1:
+    MOVLW 0x10
+    CPFSLT btemp1 ;c = (x < 0x1000) << 2
+    GOTO clz16_Continue2
+    MOVLW 0x04
+    ADDWF btemp2 ; r += c
+    rlcf16 btemp0, btemp1 ; x << c
+    rlcf16 btemp0, btemp1
+    rlcf16 btemp0, btemp1
+    rlcf16 btemp0, btemp1
+clz16_Continue2:
+    MOVLW 0x40
+    CPFSLT btemp1 ;c = (x < 0x4000) << 2
+    GOTO clz16_Continue3
+    MOVLW 0x02
+    ADDWF btemp2 ; r += c
+    rlcf16 btemp0, btemp1 ; x << c
+    rlcf16 btemp0, btemp1
+clz16_Continue3:
+    MOVLW 0x80
+    CPFSLT btemp1 ;c = (x < 0x8000) << 2
+    GOTO clz16_Continue4
+    MOVLW 0x01
+    ADDWF btemp2 ; r += c
+    rlcf16 btemp0, btemp1 ; x << c
+clz16_Continue4:
     RETURN
 
 meow:
