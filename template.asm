@@ -225,11 +225,11 @@ if_label:
     endm
 
     sub16 macro tl, th, al, ah, bl, bh
-    MOVFF ah, WREG
-    SUBWF bh, 0
+    MOVFF bh, WREG
+    SUBWF ah, 0
     MOVWF th
-    MOVFF al, WREG
-    SUBWFB bl, 0
+    MOVFF bl, WREG
+    SUBWFB al, 0
     MOVWF tl
     endm
 
@@ -267,6 +267,13 @@ if_label:
     COMF xh, 1
     MOVLW 0x00
     ADDWFC xh, 1
+    endm
+
+    sqrt16 macro t, xl, xh
+    MOVFF xl, xl_sqrt16
+    MOVFF xh, xh_sqrt16
+    CALL sqrt16_impl
+    MOVFF yl_sqrt16, t
     endm
 
     int8_to_int16 macro xo, xl, xh
@@ -316,13 +323,22 @@ if_label:
     endm
 
 main:
-    MOVLW 0x01
-    MOVWF 0x000
     MOVLW 0x00
+    MOVWF 0x000
+    MOVLW 0x01
     MOVWF 0x001
 
-    clz16 0x002, 0x000, 0x001
+    sqrt16 2, 0, 1
     
+    MOVLW 0x01
+    MOVWF 0x004
+    CLRF 0x003
+    MOVLW 0x03
+    MOVWF 0x005
+    CLRF 0x006
+
+    div16 7, 8, 3, 4, 5, 6
+
     GOTO meow
 
     btemp0 EQU 0xF0
@@ -623,6 +639,79 @@ clz16_Continue3:
     ADDWF btemp2 ; r += c
     rlcf16 btemp0, btemp1 ; x << c
 clz16_Continue4:
+    RETURN
+
+sqrt16_impl:
+    xl_sqrt16 EQU btemp4
+    xh_sqrt16 EQU btemp5
+    yl_sqrt16 EQU btemp6
+    yh_sqrt16 EQU btemp7
+
+    CLRF yl_sqrt16 ; y
+    MOVLW 0x01
+    MOVWF yh_sqrt16
+    ; if (x <= 1)
+    
+    if_bigger16 xl_sqrt16, xh_sqrt16, yh_sqrt16, yl_sqrt16, if_label_sqrt16_1, else_label_sqrt16_1, middle_label_sqrt16_1
+    GOTO sqrt16_check_done
+    else_ else_label_sqrt16_1, end_if_label_sqrt16_1
+    GOTO sqrt16_x_lower_1
+    end_if end_if_label_sqrt16_1
+
+sqrt16_check_done:
+    shift_sqrt16 EQU btemp15
+    ; shift = (16 - 1 - clz16(x)) & ~1;
+    clz16 shift_sqrt16, xl_sqrt16, xh_sqrt16
+    MOVLW 0x0F
+    SUBWF shift_sqrt16, 1
+    NEGF shift_sqrt16, 1
+    MOVLW 0xFE
+    ANDWF shift_sqrt16, 1
+
+    ml_sqrt16 EQU btemp8
+    mh_sqrt16 EQU btemp9
+    shift_left16 ml_sqrt16, mh_sqrt16, yh_sqrt16, yl_sqrt16, shift_sqrt16 ;m = 1 << shift
+    
+    CLRF yl_sqrt16
+    CLRF yh_sqrt16
+    
+sqrt16_loop:
+    ; while (m)
+    if_equ_zero_16 ml_sqrt16, mh_sqrt16, if_label_sqrt16_2, else_label_sqrt16_2
+    GOTO sqrt16_end
+    else_ else_label_sqrt16_2, end_if_label_sqrt16_2
+    end_if end_if_label_sqrt16_2
+    
+    bl_sqrt16 EQU btemp10
+    bh_sqrt16 EQU btemp11
+    ; b = y + m
+    add16 bl_sqrt16, bh_sqrt16, yl_sqrt16, yh_sqrt16, ml_sqrt16, mh_sqrt16
+    ; y >>= 1
+    BCF STATUS, 0
+    rrcf16 yl_sqrt16, yh_sqrt16
+
+    ; if (x >= b)
+    if_lower16 xl_sqrt16, xh_sqrt16, bl_sqrt16, bh_sqrt16, if_label_sqrt16_3, else_label_sqrt16_3, middle_label_sqrt16_3
+    GOTO sqrt16_continue
+    else_ else_label_sqrt16_3, end_if_label_sqrt16_3
+    ; x -= b
+    sub16 xl_sqrt16, xh_sqrt16, xl_sqrt16, xh_sqrt16, bl_sqrt16, bh_sqrt16
+    ; y += m
+    add16 yl_sqrt16, yh_sqrt16, yl_sqrt16, yh_sqrt16, ml_sqrt16, mh_sqrt16
+    end_if end_if_label_sqrt16_3
+
+sqrt16_continue:
+    ; m >>= 2
+    BCF STATUS, 0
+    rrcf16 ml_sqrt16, mh_sqrt16
+    BCF STATUS, 0
+    rrcf16 ml_sqrt16, mh_sqrt16
+    GOTO sqrt16_loop
+
+sqrt16_end:
+    RETURN
+sqrt16_x_lower_1:
+    MOVFF xl_sqrt16, yl_sqrt16
     RETURN
 
 meow:
